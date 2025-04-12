@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.backends import default_backend
+from nacl import encoding, public
 
 MEDIA_ENDPOINT_URL = 'https://api.x.com/2/media/upload'
 POST_TO_X_URL = 'https://api.x.com/2/tweets'
@@ -70,6 +71,13 @@ def need_post():
         os.replace(temp_img, local_img)
     return need_update
 
+def encrypt_secret(public_key: str, secret_value: str) -> str:
+    """使用 GitHub 返回的 Base64 编码公钥加密 Secret"""
+    public_key_bytes = base64.b64decode(public_key)
+    sealed_box = public.SealedBox(public.PublicKey(public_key_bytes))
+    encrypted = sealed_box.encrypt(secret_value.encode("utf-8"))
+    return base64.b64encode(encrypted).decode("utf-8")
+
 def save_refresh_token(new_refresh_token):
     """
     Save the latest refresh token, replacing the old one if it exists.
@@ -114,32 +122,22 @@ def save_refresh_token(new_refresh_token):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
 
-        public_key_b64 = response.json()["key"]
+        public_key = response.json()["key"]
         key_id = response.json()["key_id"]
 
         # Step 2: 加密 token
-        public_key = load_pem_public_key(base64.b64decode(public_key_b64), backend=default_backend())
-        encrypted_token = public_key.encrypt(
-            new_refresh_token.encode('utf-8'),
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-        encrypted_token_b64 = base64.b64encode(encrypted_token).decode("utf-8")
+        encrypted_value = encrypt_secret(public_key, new_refresh_token)
 
         # Step 3: 提交更新
-        secret_data = {
-            "encrypted_value": encrypted_token_b64,
+        update_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/actions/secrets/{SECRET_NAME}'
+        payload = {
+            "encrypted_value": encrypted_value,
             "key_id": key_id
         }
 
-        put_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/actions/secrets/{SECRET_NAME}'
-        put_response = requests.put(put_url, headers=headers, json=secret_data)
+        put_response = requests.put(update_url, headers=headers, json=payload)
         put_response.raise_for_status()
-
-        print("✅ REFRESH_TOKEN has been updated in GitHub Secrets and .env.")
+        print("✅ REFRESH_TOKEN 已成功更新至 GitHub Secrets。")
 
 def refresh_token_flow():
     """

@@ -28,7 +28,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests python-dotenv requests-oauthlib cryptography
+          pip install pynacl requests python-dotenv requests-oauthlib cryptography
 
       # 运行 Python 脚本
       - name: Run media_upload_v2.py
