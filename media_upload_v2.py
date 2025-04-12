@@ -227,8 +227,7 @@ def manual_authorization_flow():
     )
 
     # Save the refresh token to .env
-    with open('.env', 'a') as f:
-        f.write(f"REFRESH_TOKEN={token['refresh_token']}\n")
+    save_refresh_token(token['refresh_token'])
 
     return token["access_token"]
 
