@@ -15,6 +15,7 @@ from cryptography.hazmat.backends import default_backend
 from nacl import encoding, public
 
 MEDIA_ENDPOINT_URL = 'https://api.x.com/2/media/upload'
+MEDIA_UPLOAD = "https://api.twitter.com/2/media/upload"
 POST_TO_X_URL = 'https://api.x.com/2/tweets'
 
 # Replace with path to file
@@ -255,14 +256,18 @@ class VideoPost(object):
         # Initializes Upload
         print('INIT')
 
+        files = {
+            "media": open("output.png", "rb")
+        }
+
         request_data = {
-            'command': 'INIT',
+#            'command': 'INIT',
             'media_type': 'image/png',
-            'total_bytes': self.total_bytes,
+            # 'total_bytes': self.total_bytes,
             'media_category': 'tweet_image'
         }
 
-        req = requests.post(url=MEDIA_ENDPOINT_URL, params=request_data, headers=headers)
+        req = requests.post(url=MEDIA_UPLOAD, data=request_data, headers=headers, files=files)
         print(req.status_code)
         print(req.text)
         media_id = req.json()['data']['id']
@@ -355,7 +360,8 @@ class VideoPost(object):
 
         # Publishes Post with attached video
         payload = {
-            'text': '',
+            "for_super_followers_only": False,
+            "nullcast": False,
             'media': {
                 'media_ids': [self.media_id]
             }
@@ -372,10 +378,11 @@ if __name__ == '__main__':
         # Set headers with the access token
         headers = {
             "Authorization": f"Bearer {access_token}",
-            "User-Agent": "MediaUploadSampleCode",
+#            "User-Agent": "MediaUploadSampleCode",
+            # "Content-Type": "application/json"
         }
         videoPost = VideoPost(VIDEO_FILENAME)
         videoPost.upload_init()
-        videoPost.upload_append()
-        videoPost.upload_finalize()
+        # videoPost.upload_append()
+        # videoPost.upload_finalize()
         videoPost.post()
