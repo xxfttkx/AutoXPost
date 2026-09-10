@@ -46,5 +46,7 @@ jobs:
         with:
           add: '.' # 添加所有更改
           message: "Automated changes by GitHub Actions" # 提交信息
+          author_name: github-actions[bot] # 以 GitHub Actions bot 身份提交，而非仓库 owner
+          author_email: 41898282+github-actions[bot]@users.noreply.github.com
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub 提供的默认 token
